@@ -2,6 +2,7 @@
 its own lists) and Session 6 (raising the club's exceptions)."""
 
 from dataclasses import dataclass, field
+from tkinter import N
 
 from errors import AlreadySignedUpError, NotSignedUpError
 
@@ -17,16 +18,35 @@ class Event:
 
     def seats_left(self) -> int:
         """Provided: how many seats are still free."""
-        return self.capacity - len(self.seats)
+        return self.capacity - len(self.seats)  
 
     def sign_up(self, member: str) -> str:
-        """Give the member a seat and return "seat", or add them to the waitlist and return "waitlist"."""
-        raise NotImplementedError("core: give a seat or a waitlist place, or raise AlreadySignedUpError")
+        if member in self.seats or member in self.waitlist:
+            raise AlreadySignedUpError(member, self.title)
+        if self.seats_left() > 0:
+            self.seats.append(member)
+            return "seat"
+        self.waitlist.append(member)
+        return "waitlist"
+        
 
     def cancel(self, member: str) -> str | None:
         """Take the member off the event. Return who moves up from the waitlist, or None."""
-        raise NotImplementedError("core: take the member off, and move the first waiting member up")
+        if len(self.seats) <= 0:
+            raise NotSignedUpError(member, self.title)
+        self.seats.pop(0)
+        if len(self.waitlist) <= 0:
+            moved_up = None
+        else:
+            moved_up = self.waitlist.pop(0)
+            self.seats.append(moved_up)
+        return moved_up
+
 
     def place(self, member: str) -> int:
-        """0 for a member with a seat, or their number on the waitlist, counting from 1."""
-        raise NotImplementedError("core: 0 for a seat, the waitlist number, or NotSignedUpError")
+        if member in self.seats:
+            return 0
+        elif member in self.waitlist:
+            return self.waitlist.index(member) + 1
+        else:
+            raise NotSignedUpError(member, self.title)

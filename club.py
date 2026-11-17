@@ -2,7 +2,7 @@
 Session 5 (importing your own modules and the standard library) and Session 6 (catching only
 the errors you expect)."""
 
-from errors import SignupError, UnknownEventError
+from errors import AlreadySignedUpError, NotSignedUpError, SignupError, UnknownEventError
 from event import Event
 
 
@@ -15,20 +15,46 @@ class Club:
         self.events: dict[str, Event] = {}
 
     def add_event(self, title: str, capacity: int) -> Event:
-        """Make a new Event, store it under its title, and return it."""
-        raise NotImplementedError("core: check capacity and title, then store and return a new Event")
+        if capacity <= 0 or title in list(self.events.keys()):
+            raise ValueError()
+        event = Event(title, capacity)
+        self.events[title] = event
+        return event
 
     def event(self, title: str) -> Event:
-        """Return the event with this title, or raise UnknownEventError."""
-        raise NotImplementedError("core: look the event up, and turn a KeyError into UnknownEventError")
+        if title in self.events.keys(): return self.events[title]
+        else: raise UnknownEventError(title)
 
     def handle(self, line: str) -> str:
-        """Answer one chat command, such as "join, Muay Thai basics, Nino", with one sentence."""
-        raise NotImplementedError("core: answer a join or leave command, or say sorry")
+        try:
+            command, title, name = line.split(", ")
+            current_event = self.events[title]
+            if command == "join":
+                output = current_event.sign_up(name)
+                if output == "waitlist":
+                    return f"{name} is on the waitlist for {title}."
+                return f"{name} has a seat at {title}."
+            if command == "leave":
+                output = current_event.cancel(name)
+                if output == None:
+                    return f"{name} left {title}."
+                return f"{name} left {title}. {output} gets the seat."
+            else:
+                return f"Sorry, I don't understand '{command}'."
+        except (NotSignedUpError, AlreadySignedUpError, UnknownEventError) as Err:
+            return f"Sorry, {Err}."
+        except ValueError:
+            return f"Sorry, I don't understand '{line}'."
 
     def attendance(self) -> dict[str, int]:
-        """How many events each member has a seat at. The waitlist does not count."""
-        raise NotImplementedError("core: count each member's seats over all the events")
+        participants_list = {}
+        for an_event in list(self.events.values()):
+            for participants in an_event.seats:
+                if participants not in participants_list:
+                    participants_list[participants] = 1
+                else:
+                    participants_list[participants] += 1
+        return participants_list
 
 
 if __name__ == "__main__":
